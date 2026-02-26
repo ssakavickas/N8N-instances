@@ -6,7 +6,7 @@ secrets/
 *.key
 *.pem
 
-# n8n data (dažnai turi credentialų)
+# n8n data
 n8n-data/
 data/
 backup/
