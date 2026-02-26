@@ -1,0 +1,501 @@
+Automatizacija paima sąskaitų duomenis iš „Excel“: patikrina, kada sąskaita buvo išrašyta ir ar ji apmokėta. 
+Jei sąskaita neapmokėta, po 7, 14, 21 ir 28 dienų klientui automatiškai 
+išsiunčiamas priminimo el. laiškas. 
+Kiekvienam terminui naudojamas atskiras laiško šablonas (skirtingas tekstas ir tonas). 
+Prieš siunčiant priminimą sistema patikrina susirašinėjimo istoriją — jei per pastarąsias 48 valandas su tuo el. paštu jau buvo bendrauta dėl sąskaitos, priminimas nesiunčiamas, kad nebūtų nereikalingo kartojimo. 
+Esant poreikiui, AI automatiškai pakoreguoja laiško tekstą, kad jis būtų aiškesnis ir labiau pritaikytas situacijai.
+
+{
+    "name": "Invoice tracker TEMPLATE",
+    "nodes": [
+        {
+            "parameters": {
+                "documentId": {
+                    "__rl": true,
+                    "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+                    "mode": "list",
+                    "cachedResultName": "Invoice",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.7,
+            "position": [
+                192,
+                0
+            ],
+            "id": "af7d85f6-50ce-481c-8a0a-c2b679ec46ca",
+            "name": "Get row(s) in sheet",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "YOUR_CREDENTIALS_ID_HERE",
+                    "name": "Google Sheets account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "774cb16b-7ce6-4c53-bf72-7acc60b0cb7a",
+                            "name": "Email",
+                            "value": "={{ $json.email }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "c42123eb-1fde-461e-a4de-4a7011586213",
+                            "name": "Days",
+                            "value": "={{ \n  Math.round(\n    (Date.now() - new Date($json[\"Date Sent\"]).getTime()) / 86400000\n  ) \n}}\n",
+                            "type": "number"
+                        },
+                        {
+                            "id": "1dcd7ad2-5347-4349-bd03-ae3338b9c027",
+                            "name": "FirstName",
+                            "value": "={{ $json.Name }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "d29c8b05-094c-4c42-bfe5-cdd9b55677a4",
+                            "name": "Unpaid",
+                            "value": "={{ $json.Satatus }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                384,
+                0
+            ],
+            "id": "3efba044-3097-432b-8643-1190ea2219fd",
+            "name": "Edit Fields"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "ed5771d5-a3e1-4872-95f5-a6751df2e7f3",
+                            "leftValue": "={{ $json.Days }}",
+                            "rightValue": 7,
+                            "operator": {
+                                "type": "number",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "3af51339-5d39-44b7-9528-00d35c172d65",
+                            "leftValue": "={{ $json.Days }}",
+                            "rightValue": 14,
+                            "operator": {
+                                "type": "number",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "f889ffee-fb9a-4dd3-a589-237d6bd5bfe7",
+                            "leftValue": "={{ $json.Days }}",
+                            "rightValue": 21,
+                            "operator": {
+                                "type": "number",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "576c1f0b-2ddc-4dd4-86cc-f51a68c6388f",
+                            "leftValue": "={{ $json.Days }}",
+                            "rightValue": 28,
+                            "operator": {
+                                "type": "number",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "ca004e81-3dcb-4900-b2ba-5efd5ffcd688",
+                            "leftValue": "={{ $json.Unpaid }}",
+                            "rightValue": "=Unpaid",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2.3,
+            "position": [
+                592,
+                0
+            ],
+            "id": "964cd702-a66f-40ca-918a-c69f4b96a532",
+            "name": "Filter"
+        },
+        {
+            "parameters": {
+                "options": {
+                    "reset": false
+                }
+            },
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                784,
+                0
+            ],
+            "id": "3198f10d-f32e-4f79-bcd1-81e56e2ad39a",
+            "name": "Loop Over Items",
+            "alwaysOutputData": false
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "limit": 10,
+                "simple": false,
+                "filters": {
+                    "q": "=from :{{ $json.Email }} OR to {{ $json.Email }}"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.2,
+            "position": [
+                1008,
+                16
+            ],
+            "id": "729db08b-a8cf-4fde-abe2-da76ec0742ff",
+            "name": "Get many messages1",
+            "webhookId": "TEMPLATE_WEBHOOK_ID",
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "YOUR_CREDENTIALS_ID_HERE",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "fieldsToAggregate": {
+                    "fieldToAggregate": [
+                        {
+                            "fieldToAggregate": "text"
+                        },
+                        {
+                            "fieldToAggregate": "headers.date"
+                        }
+                    ]
+                },
+                "options": {
+                    "mergeLists": true
+                }
+            },
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+                1184,
+                16
+            ],
+            "id": "3df0ae24-cf5c-4cdc-918b-9f11d82c4344",
+            "name": "Aggregate"
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "gpt-4.1",
+                    "mode": "list",
+                    "cachedResultName": "GPT-4.1"
+                },
+                "responses": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "Tu esi išmanus administracinis asistentas. Tu padedi man sekti ir tęsti bendravimą el. paštu."
+                        },
+                        {
+                            "content": "=Aš siunčiu priminimus apie neapmokėtas sąskaitas naudodamas šabloninius el. laiškus. Tavo užduotis perskaityti visą el. pašto susirašinėjimo istoriją tarp manęs ir kliento ir nuspręsti, ar galiu siųsti el. laišką tokį, koks jis yra, ar reikia atlikti\npakeitimus el. laiško šablone.\n\nŽemiau pateikiamas šablonas\n\n{{\n  $if(\n    $('Loop Over Items').item.json.Days === 7,\n    $json[\"Follow up1\"][0],\n    $if(\n      $('Loop Over Items').item.json.Days === 14,\n      $json[\"Follow up1\"][1],\n      $if(\n        $('Loop Over Items').item.json.Days === 21,\n        $json[\"Follow up1\"][2],\n        $if(\n          $('Loop Over Items').item.json.Days === 28,\n          $json[\"Follow up1\"][3],\n          null\n        )\n      )\n    )\n  )\n}}\n\n\nSVARBU:\nGrąžink TIK vieną JSON objektą (be jokio papildomo teksto).\n\"verdict\" turi būti boolean (true/false be kabučių).\n\nAtsakymo formatas (privalomas):\n{\"verdict\":true,\"emailTemplate\":\"...su \\\\n vietoje naujų eilučių...\"}\n\nTaisyklės:\n\nJei per pastarąsias 72 valandas mes siuntėme arba      gavome el. laišką,\nsusijusį su šia sąskaita, nesiųsk priminimo.\nTokiu atveju grąžink \"false\" kaip verdict.\nJei per pastarąsias 72 valandas NEBUVO jokio el. laiško,\nsusijusio su šia sąskaita, grąžink \"true\" kaip verdict.\nJei susirašinėjimo istorijoje buvo aptarta informacija,\ndėl kurios priminimo siuntimas būtų netinkamas arba keistas(pvz. kartojama ta pati informacija ar neatitinka konteksto), pakoreguok el. laiško šabloną taip, kad jis būtų logiškas ir nuoseklus.\n\nNekoreguok el. laiško šablono, jei to daryti nėra būtina.\n\nSusirašinėjimo istorija\n{{ $('Aggregate').item.json.text }}\n\nŠiandienos data\n{{ $now }}\n\n\n\n"
+                        }
+                    ]
+                },
+                "builtInTools": {},
+                "options": {
+                    "textFormat": {
+                        "textOptions": {
+                            "type": "json_object"
+                        }
+                    }
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 2.1,
+            "position": [
+                1488,
+                16
+            ],
+            "id": "233b7296-094a-43d2-87bb-d4166c720ec5",
+            "name": "Message a model",
+            "credentials": {
+                "openAiApi": {
+                    "id": "YOUR_CREDENTIALS_ID_HERE",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "0588e6c8-07ed-432e-910c-3fdb82bf8f0b",
+                            "name": "Textwithdate",
+                            "value": "={{ $json.text.map((item, index) => $json.date[index] + '\\n' + item) }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "f2786993-c9ec-420f-a7b9-b3fb38c627b7",
+                            "name": "Follow up1",
+                            "value": "[   \"Sveiki,\\n\\nRašome jums dėl sąskaitos. Matome, kad apmokėjimas dar nėra atliktas.\\nJei viskas jau sutvarkyta, prašome šį laišką ignoruoti.\\nJeigu kyla klausimų ar reikia papildomos informacijos, mielai padėsime.\\n\\nGražios dienos!\",   \"Sveiki,\\n\\nNorėjome trumpai pasitikslinti, ar pavyko peržiūrėti mūsų atsiųstą sąskaitą.\\n\\nJeigu viskas tvarkoje, puiku. Jei kyla klausimų ar reikia papildomos informacijos, mielai padėsime.\\n\\nGražios dienos!\",   \"Sveiki,\\n\\nPrimename dėl ankstesnės sąskaitos. Galbūt ji tiesiog pasimetė tarp kitų laiškų.\\nJei sąskaita jau apmokėta, prašome šį laišką ignoruoti.\\nJei ne, praneškite, ar galime kuo nors padėti.\\n\\nAčiū ir gero vakaro!\",   \"Sveiki,\\n\\nRašome dar kartą dėl vis dar neapmokėtos sąskaitos.\\nPrašytume informuoti, ar galime tikėtis apmokėjimo artimiausiu metu,\\narba pranešti, jei reikalinga papildoma informacija.\\n\\nIš anksto dėkojame už atsakymą.\" ]",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1344,
+                16
+            ],
+            "id": "e9b64a3a-8398-45d5-aaf2-487db1468f08",
+            "name": "Edit Fields1"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict",
+                        "version": 3
+                    },
+                    "conditions": [
+                        {
+                            "id": "b23a9c70-f055-44d8-80e4-0cf4c5c68998",
+                            "leftValue": "={{ $json.output[0].content[0].text.verdict }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2.3,
+            "position": [
+                1776,
+                16
+            ],
+            "id": "9ab77a0a-a5d5-4434-924d-29d072d2d476",
+            "name": "Filter1"
+        },
+        {
+            "parameters": {
+                "sendTo": "={{ $('Loop Over Items').item.json.Email }}",
+                "subject": "Sąskaitos",
+                "message": "={{ $('Message a model').item.json.output[0].content[0].text.emailTemplate }}",
+                "options": {
+                    "appendAttribution": false
+                }
+            },
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.2,
+            "position": [
+                1952,
+                16
+            ],
+            "id": "25f9f189-1c09-49e5-89ca-b1487b24c4e0",
+            "name": "Send a message",
+            "webhookId": "TEMPLATE_WEBHOOK_ID",
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "YOUR_CREDENTIALS_ID_HERE",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "months",
+                            "triggerAtHour": 7
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.3,
+            "position": [
+                -16,
+                0
+            ],
+            "id": "632cb192-faff-406c-9a95-b0dae8c5eb95",
+            "name": "Schedule Trigger"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Get row(s) in sheet": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields": {
+            "main": [
+                [
+                    {
+                        "node": "Filter",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Over Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Over Items": {
+            "main": [
+                [],
+                [
+                    {
+                        "node": "Get many messages1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get many messages1": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Message a model": {
+            "main": [
+                [
+                    {
+                        "node": "Filter1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields1": {
+            "main": [
+                [
+                    {
+                        "node": "Message a model",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter1": {
+            "main": [
+                [
+                    {
+                        "node": "Send a message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send a message": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Over Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Schedule Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Get row(s) in sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
